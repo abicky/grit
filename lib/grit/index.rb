@@ -173,7 +173,7 @@ module Grit
         k = obj.name
         k += '/' if (obj.class == Grit::Tree)
         tmode = obj.mode.to_i.to_s  ## remove zero-padding
-        tree_contents[k] = "%s %s\0%s" % [tmode, obj.name, sha]
+        tree_contents[k] = build_tree_content(tmode, obj.name, sha)
       end if now_tree
 
       # overwrite with new tree contents
@@ -185,20 +185,17 @@ module Grit
               sha = [sha].pack("H*")
               mode = mode.to_i.to_s  # leading 0s not allowed
               k = k.split('/').last  # slashes not allowed
-              str = "%s %s\0%s" % [mode, k, sha]
-              tree_contents[k] = str
+              tree_contents[k] = build_tree_content(mode, k, sha)
             end
           when String
             sha = write_blob(v)
             sha = [sha].pack("H*")
-            str = "%s %s\0%s" % ['100644', k, sha]
-            tree_contents[k] = str
+            tree_contents[k] = build_tree_content('100644', k, sha)
           when Hash
             ctree = now_tree/k if now_tree
             sha = write_tree(v, ctree)
             sha = [sha].pack("H*")
-            str = "%s %s\0%s" % ['40000', k, sha]
-            tree_contents[k + '/'] = str
+            tree_contents[k + '/'] = build_tree_content('40000', k, sha)
           when false
             tree_contents.delete(k)
         end
@@ -217,6 +214,11 @@ module Grit
     def write_blob(data)
       self.repo.git.put_raw_object(data, 'blob')
     end
+
+    def build_tree_content(mode, name, sha)
+      "%s %s\0%s" % [mode, name.dup.force_encoding('ascii-8bit'), sha]
+    end
+    private :build_tree_content
   end # Index
 
 end # Grit
